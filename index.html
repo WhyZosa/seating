@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Карта рассадки</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4efe6;--paper-2:#ece4d6;--ink:#211c16;--ink-soft:#5d544a;
+    --line:#cdc3b1;--accent:#b5451f;--free:#fbf8f2;--free-line:#bcb09a;
+    --good:#2f9b57;--good-soft:#d6f0df;--taken-soft:#e7ddc9;
+    --shadow:0 1px 0 #fff8, 0 8px 24px -12px #211c1633;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:radial-gradient(1200px 500px at 80% -10%, #ffffff55, transparent),var(--paper);
+    color:var(--ink);font-family:"Golos Text",sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;}
+  .wrap{max-width:1240px;margin:0 auto;padding:24px 20px 90px;}
+
+  .topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;}
+  h1{font-family:"Unbounded";font-weight:800;font-size:clamp(20px,3vw,30px);letter-spacing:-.02em;margin:0;}
+  h1 span{color:var(--accent);}
+  .rolebox{display:flex;align-items:center;gap:10px;font-size:13px;}
+  .badge{font-family:"Unbounded";font-size:11px;letter-spacing:.08em;padding:5px 11px;border-radius:9px;border:1px solid var(--line);}
+  .badge.admin{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  .badge.student{background:var(--paper-2);color:var(--ink-soft);}
+  button.btn{font-family:"Golos Text";font-weight:600;font-size:13px;border:1px solid var(--line);
+    background:var(--free);color:var(--ink);padding:9px 13px;border-radius:11px;cursor:pointer;transition:.15s;}
+  button.btn:hover{border-color:var(--ink-soft);}
+  button.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  button.btn.warn{color:var(--accent);}
+  button.btn.small{padding:7px 11px;font-size:12px;}
+
+  .banner{background:#fff3e0;border:1px solid #e0b070;color:#7a4a10;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.5;}
+  .banner code{background:#0001;padding:1px 5px;border-radius:5px;}
+
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+  .tab{font-family:"Unbounded";font-weight:600;font-size:15px;border:1px solid var(--line);
+    background:var(--paper-2);color:var(--ink-soft);padding:11px 18px;border-radius:13px;cursor:pointer;
+    transition:.15s;display:flex;align-items:baseline;gap:10px;}
+  .tab small{font-family:"Golos Text";font-weight:500;font-size:12px;opacity:.85;}
+  .tab[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink);box-shadow:0 10px 22px -14px #211c16aa;}
+  .tab[aria-selected="true"] small{color:var(--paper);opacity:.75;}
+
+  .finder{position:relative;margin-bottom:18px;width:320px;max-width:100%;}
+  .finder input{font-family:"Golos Text";font-size:13px;padding:9px 13px 9px 32px;border-radius:11px;
+    border:1px solid var(--line);background:var(--free);color:var(--ink);width:100%;}
+  .finder input:focus{outline:none;border-color:var(--ink);}
+  .finder>svg{position:absolute;left:10px;top:13px;opacity:.5;}
+  .suggest{position:absolute;top:42px;left:0;right:0;background:var(--paper);border:1px solid var(--line);
+    border-radius:12px;box-shadow:0 18px 40px -18px #000a;z-index:30;overflow:hidden;display:none;max-height:340px;overflow-y:auto;}
+  .suggest.open{display:block;}
+  .sg{padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--line);}
+  .sg:last-child{border-bottom:none;}
+  .sg:hover,.sg.active{background:var(--paper-2);}
+  .sg .nm{font-weight:600;font-size:14px;}
+  .sg .meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+
+  .room{background:linear-gradient(180deg,#fffdf8,#f6f1e8);border:1px solid var(--line);
+    border-radius:20px;padding:26px 22px;box-shadow:var(--shadow);overflow-x:auto;min-height:120px;}
+
+  .row{display:flex;align-items:center;gap:18px;margin-bottom:14px;justify-content:center;min-width:max-content;}
+  .row-label{flex:0 0 auto;width:58px;text-align:right;color:var(--ink-soft);font-size:12px;font-weight:600;}
+  .row-label b{display:block;font-family:"Unbounded";font-size:13px;color:var(--ink);}
+  .blocks{display:flex;gap:22px;align-items:center;}
+  .block{display:flex;gap:6px;}
+
+  .sectors{display:flex;gap:30px;justify-content:center;min-width:max-content;}
+  .sector{display:flex;flex-direction:column;gap:9px;align-items:center;}
+  .sector .sec-title{font-family:"Unbounded";font-size:12px;color:var(--ink);background:var(--paper-2);
+    border:1px solid var(--line);padding:5px 14px;border-radius:9px;margin-bottom:4px;}
+  .desk{display:flex;gap:5px;align-items:center;}
+  .desk .desk-no{width:22px;text-align:right;font-size:10px;color:var(--ink-soft);font-weight:600;}
+
+  .seat{width:48px;height:44px;border-radius:9px;border:1.5px solid var(--free-line);background:var(--free);
+    cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;
+    transition:.12s;position:relative;padding:2px;}
+  .seat:hover{transform:translateY(-2px);border-color:var(--ink);box-shadow:0 8px 14px -10px #211c1688;}
+  .seat .num{font-size:10px;color:#a99e89;font-weight:600;}
+  .seat.taken .num{display:none;}
+  .seat .name{font-size:11px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .seat .var{font-size:9px;font-weight:600;opacity:.85;}
+  .seat.taken{border-width:2px;background:var(--taken-soft);border-color:#c7b48f;color:#5a4a2c;}
+  .seat.present{background:var(--good-soft) !important;border-color:var(--good) !important;color:#1d6b3c !important;}
+  .seat .check{position:absolute;top:-6px;right:-6px;width:17px;height:17px;border-radius:50%;
+    background:var(--good);color:#fff;font-size:11px;display:none;align-items:center;justify-content:center;font-weight:700;}
+  .seat.present .check{display:flex;}
+  .seat.match{outline:3px solid var(--accent);outline-offset:2px;}
+  .seat.dim{opacity:.3;}
+
+  .overlay{position:fixed;inset:0;background:#211c1688;backdrop-filter:blur(3px);display:none;
+    align-items:center;justify-content:center;z-index:50;padding:18px;}
+  .overlay.open{display:flex;}
+  .modal{background:var(--paper);border:1px solid var(--line);border-radius:20px;width:min(420px,100%);
+    padding:24px;box-shadow:0 30px 60px -20px #000a;animation:pop .18s ease;}
+  @keyframes pop{from{transform:scale(.94);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .modal h3{font-family:"Unbounded";font-weight:600;margin:0 0 2px;font-size:18px;}
+  .modal .seatpos{color:var(--accent);font-weight:700;font-size:13px;margin-bottom:16px;}
+  .field{margin-bottom:13px;}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:5px;}
+  .field input{width:100%;font-family:"Golos Text";font-size:14px;padding:10px 12px;border:1px solid var(--line);
+    border-radius:10px;background:var(--free);color:var(--ink);}
+  .field input:focus{outline:none;border-color:var(--ink);}
+  .presence{margin-bottom:4px;}
+  .presence label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:5px;}
+  .presence button{width:100%;font-family:"Golos Text";font-weight:600;font-size:14px;padding:11px;border-radius:10px;
+    border:1.5px solid var(--line);background:var(--free);color:var(--ink-soft);cursor:pointer;transition:.15s;}
+  .presence button[aria-pressed="true"]{background:var(--good);border-color:var(--good);color:#fff;}
+  .modal .actions{display:flex;gap:8px;margin-top:18px;}
+  .modal .actions .grow{flex:1;}
+  .ro{font-size:14px;line-height:1.7;}
+  .ro b{font-weight:700;}
+  .ro .free{color:var(--ink-soft);}
+  .status{font-size:12px;color:var(--ink-soft);margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <h1>Карта <span>рассадки</span></h1>
+    <div class="rolebox" id="rolebox"></div>
+  </div>
+
+  <div id="banner"></div>
+
+  <div class="tabs" id="tabs" role="tablist"></div>
+
+  <div class="finder">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input type="text" id="finder" placeholder="Найти студента по ФИО или группе…" autocomplete="off">
+    <div class="suggest" id="suggest"></div>
+  </div>
+
+  <div class="room" id="room"></div>
+  <div class="status" id="status"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ============================================================
+   ШАГ 1. Впиши сюда данные своего проекта Supabase.
+   Settings → API:  Project URL  и  anon public key.
+   Оба ключа можно публиковать — это нормально и безопасно.
+   ============================================================ */
+const SUPABASE_URL = "ВСТАВЬ_СЮДА_PROJECT_URL";
+const SUPABASE_ANON = "ВСТАВЬ_СЮДА_ANON_KEY";
+/* ============================================================ */
+
+/* ---- геометрия аудиторий (как в твоём приложении) ---- */
+function rowsRange(a,b,blocks){const o=[];for(let n=a;n<=b;n++)o.push({n,blocks:blocks.slice()});return o;}
+const ROOMS={
+  R401:{name:"R401",kind:"rows",rows:[
+    {n:1,blocks:[8,6,8]},
+    ...rowsRange(2,10,[23]),
+    {n:11,blocks:[15]},
+  ]},
+  R304:{name:"R304",kind:"rows",rows: rowsRange(1,11,[18]) },
+  R503:{name:"R503",kind:"sectors",sectors:[
+    {name:"Ряд 1",offset:1,desks:[4,4,4,4,4]},
+    {name:"Ряд 2",offset:1,desks:[6,6,6,6,6,6,6]},
+    {name:"Ряд 3",offset:0,desks:[2,4,4,4,4,4,4,4]},
+  ]},
+};
+
+let current="R401";
+let isAdmin=false;
+let configured = SUPABASE_URL.startsWith("http") && SUPABASE_ANON.length>20;
+let sb=null;
+let assignments={}; Object.keys(ROOMS).forEach(r=>assignments[r]={});
+let editing=null, modalPresent=false;
+
+/* ---- id / позиция ---- */
+const idRow=(n,s)=>`r${n}s${s}`, posRow=(n,s)=>`Ряд ${n}, место ${s}`;
+const idSec=(c,d,s)=>`c${c}d${d}s${s}`, posSec=(name,d,s)=>`${name} (сектор), линия ${d}, место ${s}`;
+function enumerate(room){const R=ROOMS[room],out=[];
+  if(R.kind==="rows"){R.rows.forEach(r=>{let c=0;r.blocks.forEach(b=>{for(let i=0;i<b;i++){c++;out.push({id:idRow(r.n,c),pos:posRow(r.n,c)});}});});}
+  else{R.sectors.forEach((sec,si)=>{const c=si+1;sec.desks.forEach((d,di)=>{const dn=di+1;for(let s=1;s<=d;s++)out.push({id:idSec(c,dn,s),pos:posSec(sec.name,dn,s)});});});}
+  return out;}
+const _pos={};
+function posOf(room,id){if(!_pos[room]){_pos[room]={};enumerate(room).forEach(x=>_pos[room][x.id]=x.pos);}return _pos[room][id]||id;}
+const totalSeats=room=>enumerate(room).length;
+const surname=f=>(f||"").trim().split(/\s+/)[0]||"";
+const escapeHtml=s=>(s+"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const isTaken=d=>d&&(d.fio||d.var||d.group||d.present);
+
+/* ---- данные из Supabase ---- */
+async function loadAll(){
+  if(!sb) return;
+  Object.keys(ROOMS).forEach(r=>assignments[r]={});
+  try{
+    if(isAdmin){
+      const {data,error}=await sb.from("seats").select("room,seat_id,fio,grp,variant,present");
+      if(error)throw error;
+      (data||[]).forEach(r=>{if(assignments[r.room])assignments[r.room][r.seat_id]={fio:r.fio,group:r.grp,var:r.variant,present:r.present};});
+    }else{
+      const {data,error}=await sb.from("seats_public").select("room,seat_id,fio,grp,present");
+      if(error)throw error;
+      (data||[]).forEach(r=>{if(assignments[r.room])assignments[r.room][r.seat_id]={fio:r.fio,group:r.grp,present:r.present};});
+    }
+    setStatus("Обновлено: "+new Date().toLocaleTimeString());
+  }catch(e){ setStatus("Ошибка загрузки: "+(e.message||e)); }
+}
+async function saveSeat(room,id,d){
+  if(!sb||!isAdmin)return;
+  const row={room,seat_id:id,fio:d.fio||null,grp:d.group||null,variant:d.var||null,present:!!d.present};
+  const {error}=await sb.from("seats").upsert(row,{onConflict:"room,seat_id"});
+  if(error)setStatus("Ошибка сохранения: "+error.message);
+}
+async function deleteSeat(room,id){
+  if(!sb||!isAdmin)return;
+  const {error}=await sb.from("seats").delete().eq("room",room).eq("seat_id",id);
+  if(error)setStatus("Ошибка удаления: "+error.message);
+}
+function setStatus(t){document.getElementById("status").textContent=t;}
+
+/* ---- отрисовка места ---- */
+function makeSeat(room,id,pos,fallbackNo){
+  const d=(assignments[room]||{})[id];
+  const s=document.createElement("div");s.className="seat";s.dataset.id=id;s.dataset.pos=pos;
+  if(isTaken(d)){
+    s.classList.add("taken");
+    if(d.present)s.classList.add("present");
+    const showVar=isAdmin&&d.var;
+    s.innerHTML=`<div class="name">${escapeHtml(surname(d.fio)||"—")}</div>`+(showVar?`<div class="var">в.${escapeHtml(d.var)}</div>`:"")+`<div class="check">✓</div>`;
+    s.title=`${pos}\n${d.fio||""}\nГруппа: ${d.group||"—"}`+(isAdmin?` · Вариант: ${d.var||"—"}`:"")+`\n${d.present?"Пришёл":"Не отмечен"}`;
+  }else{
+    s.innerHTML=`<div class="num">${fallbackNo}</div><div class="check">✓</div>`;
+    s.title=`${pos} — свободно`;
+  }
+  s.onclick=()=>openModal(room,id,pos);
+  return s;
+}
+
+function renderRoom(){
+  const root=document.getElementById("room");root.innerHTML="";const R=ROOMS[current];
+  if(R.kind==="rows"){
+    R.rows.forEach(rowDef=>{
+      const rowEl=document.createElement("div");rowEl.className="row";
+      const lab=document.createElement("div");lab.className="row-label";lab.innerHTML=`ряд<b>${rowDef.n}</b>`;rowEl.appendChild(lab);
+      const blocksEl=document.createElement("div");blocksEl.className="blocks";let c=0;
+      rowDef.blocks.forEach(count=>{const blk=document.createElement("div");blk.className="block";
+        for(let i=0;i<count;i++){c++;blk.appendChild(makeSeat(current,idRow(rowDef.n,c),posRow(rowDef.n,c),c));}
+        blocksEl.appendChild(blk);});
+      rowEl.appendChild(blocksEl);root.appendChild(rowEl);
+    });
+  }else{
+    const cont=document.createElement("div");cont.className="sectors";
+    R.sectors.forEach((sec,si)=>{const c=si+1;
+      const col=document.createElement("div");col.className="sector";
+      const t=document.createElement("div");t.className="sec-title";t.textContent=sec.name;col.appendChild(t);
+      if(sec.offset){const sp=document.createElement("div");sp.style.height=(53*sec.offset-9)+"px";sp.style.flex="0 0 auto";col.appendChild(sp);}
+      sec.desks.forEach((d,di)=>{const dn=di+1;
+        const deskEl=document.createElement("div");deskEl.className="desk";
+        const no=document.createElement("div");no.className="desk-no";no.textContent=dn;deskEl.appendChild(no);
+        for(let s=1;s<=d;s++)deskEl.appendChild(makeSeat(current,idSec(c,dn,s),posSec(sec.name,dn,s),s));
+        col.appendChild(deskEl);});
+      cont.appendChild(col);
+    });
+    root.appendChild(cont);
+  }
+  applyFinderHighlight();
+}
+
+function renderTabs(){const t=document.getElementById("tabs");t.innerHTML="";
+  Object.keys(ROOMS).forEach(room=>{const occ=Object.values(assignments[room]||{}).filter(isTaken).length;
+    const b=document.createElement("button");b.className="tab";b.setAttribute("role","tab");b.setAttribute("aria-selected",room===current);
+    b.innerHTML=`${ROOMS[room].name}<small>${occ}/${totalSeats(room)} мест</small>`;
+    b.onclick=()=>{current=room;renderTabs();renderRoom();};t.appendChild(b);});}
+
+/* ---- модалка: админ редактирует, студент только смотрит ---- */
+function setPresence(v){modalPresent=v;const b=document.getElementById("mPres");if(!b)return;b.setAttribute("aria-pressed",v);b.textContent=v?"✓ Пришёл":"Отметить, что пришёл";}
+function openModal(room,id,pos){
+  editing={room,id};const d=(assignments[room]||{})[id]||{};
+  const m=document.getElementById("modal");
+  if(isAdmin){
+    m.innerHTML=`<h3>${ROOMS[room].name}</h3><div class="seatpos">${escapeHtml(pos)}</div>
+      <div class="field"><label>ФИО</label><input id="mFio" placeholder="Иванов Иван Иванович"></div>
+      <div class="field"><label>Группа</label><input id="mGroup" placeholder="БПМИ245"></div>
+      <div class="field"><label>Вариант</label><input id="mVar" placeholder="3"></div>
+      <div class="presence"><label>Явка</label><button id="mPres" aria-pressed="false">Отметить, что пришёл</button></div>
+      <div class="actions"><button class="btn primary grow" id="mSave">Сохранить</button>
+        <button class="btn warn" id="mClearOne">Удалить</button>
+        <button class="btn" id="mCancel">Отмена</button></div>`;
+    document.getElementById("mFio").value=d.fio||"";
+    document.getElementById("mGroup").value=d.group||"";
+    document.getElementById("mVar").value=d.var||"";
+    setPresence(!!d.present);
+    document.getElementById("mSave").onclick=saveModal;
+    document.getElementById("mClearOne").onclick=clearOne;
+    document.getElementById("mCancel").onclick=closeModal;
+    document.getElementById("mPres").onclick=()=>setPresence(!modalPresent);
+    setTimeout(()=>document.getElementById("mFio").focus(),50);
+  }else{
+    let body;
+    if(isTaken(d)){
+      body=`<div class="ro"><b>${escapeHtml(d.fio||"—")}</b><br>
+        Группа: ${escapeHtml(d.group||"—")}<br>
+        Аудитория: ${ROOMS[room].name}<br>
+        ${escapeHtml(pos)}<br>
+        Статус: ${d.present?'<b style="color:var(--good)">пришёл</b>':"не отмечен"}</div>`;
+    }else{
+      body=`<div class="ro free">${escapeHtml(pos)} — свободно</div>`;
+    }
+    m.innerHTML=`<h3>${ROOMS[room].name}</h3><div class="seatpos">${escapeHtml(pos)}</div>
+      ${body}<div class="actions"><button class="btn grow" id="mCancel">Закрыть</button></div>`;
+    document.getElementById("mCancel").onclick=closeModal;
+  }
+  document.getElementById("overlay").classList.add("open");
+}
+function closeModal(){document.getElementById("overlay").classList.remove("open");editing=null;}
+async function saveModal(){if(!editing)return;const id=editing.id,room=editing.room;
+  const fio=document.getElementById("mFio").value.trim(),group=document.getElementById("mGroup").value.trim(),v=document.getElementById("mVar").value.trim();
+  if(!fio&&!group&&!v&&!modalPresent){delete assignments[room][id];deleteSeat(room,id);}
+  else{assignments[room][id]={fio,group,var:v,present:modalPresent};saveSeat(room,id,assignments[room][id]);}
+  closeModal();renderRoom();renderTabs();}
+async function clearOne(){if(!editing)return;const room=editing.room,id=editing.id;
+  delete assignments[room][id];deleteSeat(room,id);closeModal();renderRoom();renderTabs();}
+
+/* ---- поиск ---- */
+function buildIndex(){const idx=[];Object.keys(ROOMS).forEach(room=>{Object.entries(assignments[room]||{}).forEach(([id,d])=>{if(isTaken(d))idx.push({room,id,pos:posOf(room,id),...d});});});return idx;}
+let sgItems=[],sgActive=-1;
+function showSuggest(){
+  const q=document.getElementById("finder").value.trim().toLowerCase();const box=document.getElementById("suggest");
+  if(!q){box.classList.remove("open");applyFinderHighlight();return;}
+  sgItems=buildIndex().filter(x=>((x.fio||"")+" "+(x.group||"")).toLowerCase().includes(q)).slice(0,8);
+  if(!sgItems.length){box.innerHTML='<div class="sg"><div class="meta">Никого не нашлось</div></div>';box.classList.add("open");return;}
+  box.innerHTML=sgItems.map((x,i)=>`<div class="sg" data-i="${i}"><div class="nm">${escapeHtml(x.fio||"—")} ${x.present?'<span style="color:var(--good)">✓</span>':''}</div>
+    <div class="meta">${escapeHtml(x.group||"без группы")} · ${x.room} · ${escapeHtml(x.pos)}${isAdmin?` · вариант ${escapeHtml(x.var||"—")}`:""}</div></div>`).join("");
+  box.classList.add("open");sgActive=-1;
+  box.querySelectorAll(".sg").forEach(el=>{el.onclick=()=>pickSuggest(+el.dataset.i);});applyFinderHighlight();
+}
+function pickSuggest(i){const x=sgItems[i];if(!x)return;document.getElementById("suggest").classList.remove("open");current=x.room;renderTabs();renderRoom();openModal(x.room,x.id,x.pos);}
+function applyFinderHighlight(){
+  const q=document.getElementById("finder").value.trim().toLowerCase();
+  document.querySelectorAll(".seat").forEach(s=>s.classList.remove("match","dim"));if(!q)return;
+  document.querySelectorAll(".seat").forEach(s=>{const d=(assignments[current]||{})[s.dataset.id];const hay=((d&&d.fio)||"")+" "+((d&&d.group)||"");
+    if(isTaken(d)&&hay.toLowerCase().includes(q))s.classList.add("match");else s.classList.add("dim");});
+}
+
+/* ---- роль / вход преподавателя ---- */
+function renderRole(){
+  const rb=document.getElementById("rolebox");
+  if(isAdmin){
+    rb.innerHTML=`<span class="badge admin">Преподаватель</span><button class="btn small" id="logout">Выйти</button>`;
+    document.getElementById("logout").onclick=async()=>{await sb.auth.signOut();};
+  }else{
+    rb.innerHTML=`<span class="badge student">Студент · только просмотр</span><button class="btn small" id="login">Вход для преподавателя</button>`;
+    document.getElementById("login").onclick=loginFlow;
+  }
+}
+async function loginFlow(){
+  const email=prompt("Почта преподавателя (придёт ссылка для входа):");
+  if(!email)return;
+  const {error}=await sb.auth.signInWithOtp({email:email.trim(),options:{emailRedirectTo:location.origin+location.pathname}});
+  if(error)alert("Ошибка: "+error.message);
+  else alert("Ссылка для входа отправлена на "+email+". Открой письмо на этом же устройстве.");
+}
+
+/* ---- слушатели ---- */
+document.getElementById("overlay").onclick=e=>{if(e.target.id==="overlay")closeModal();};
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();
+  if(e.key==="Enter"&&editing&&isAdmin&&document.getElementById("overlay").classList.contains("open"))saveModal();});
+const finderEl=document.getElementById("finder");
+finderEl.addEventListener("input",showSuggest);finderEl.addEventListener("focus",showSuggest);
+finderEl.addEventListener("keydown",e=>{const box=document.getElementById("suggest");if(!box.classList.contains("open"))return;
+  if(e.key==="ArrowDown"){sgActive=Math.min(sgActive+1,sgItems.length-1);e.preventDefault();}
+  else if(e.key==="ArrowUp"){sgActive=Math.max(sgActive-1,0);e.preventDefault();}
+  else if(e.key==="Enter"){if(sgActive>=0){pickSuggest(sgActive);e.preventDefault();}return;}
+  box.querySelectorAll(".sg").forEach((el,i)=>el.classList.toggle("active",i===sgActive));});
+document.addEventListener("click",e=>{if(!e.target.closest(".finder"))document.getElementById("suggest").classList.remove("open");});
+
+/* ---- старт ---- */
+async function refreshAndRender(){await loadAll();
+  // не перетираем экран, пока препод что-то печатает в модалке
+  if(!document.getElementById("overlay").classList.contains("open")){renderRoom();}
+  renderTabs();}
+async function init(){
+  if(!configured){
+    document.getElementById("banner").innerHTML="";
+    document.getElementById("rolebox").innerHTML='<span class="badge student">Студент · только просмотр</span>';
+    renderTabs();renderRoom();return;
+  }
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
+  const {data:{session}}=await sb.auth.getSession();
+  isAdmin=!!session;
+  sb.auth.onAuthStateChange((_e,s)=>{const was=isAdmin;isAdmin=!!s;if(was!==isAdmin){renderRole();refreshAndRender();}});
+  renderRole();
+  await refreshAndRender();
+  setInterval(refreshAndRender,5000); // обновление каждые 5 сек
+}
+init();
+</script>
+</body>
+</html>
