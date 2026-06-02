@@ -351,7 +351,7 @@ function renderRole(){
     rb.innerHTML=`<span class="badge admin">Преподаватель</span><button class="btn small" id="logout">Выйти</button>`;
     document.getElementById("logout").onclick=async()=>{await sb.auth.signOut();};
   }else{
-    rb.innerHTML=`<span class="badge student">Студент · только просмотр</span><button class="btn small" id="login">Вход для преподавателя</button>`;
+    rb.innerHTML=`<button class="btn small" id="login">Вход для преподавателя</button>`;
     document.getElementById("login").onclick=loginFlow;
   }
 }
@@ -384,7 +384,8 @@ async function refreshAndRender(){await loadAll();
 async function init(){
   if(!configured){
     document.getElementById("banner").innerHTML="";
-    document.getElementById("rolebox").innerHTML='<span class="badge student">Студент · только просмотр</span>';
+    document.getElementById("rolebox").innerHTML='<button class="btn small" id="login">Вход для преподавателя</button>';
+    document.getElementById("login").onclick=loginFlow;
     renderTabs();renderRoom();return;
   }
   sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
