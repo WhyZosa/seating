@@ -235,10 +235,10 @@ async function loginFlow(){
   const {error}=await sb.auth.signInWithOtp({email:cleanEmail,options:{emailRedirectTo:authRedirectUrl()}});
   if(error){alert("Ошибка: "+friendlyAuthError(error));return;}
   setStatus("Письмо отправлено на "+cleanEmail);
-  const token=prompt("Письмо отправлено на "+cleanEmail+".\n\nЕсли в письме есть 6-значный код, введи его здесь. Если хочешь войти по кнопке из письма, оставь поле пустым.");
+  const token=prompt("Письмо отправлено на "+cleanEmail+".\n\nЕсли в письме есть цифровой код, введи его здесь. Если хочешь войти по кнопке из письма, оставь поле пустым.");
   if(!token)return;
   const cleanToken=token.trim().replace(/\s+/g,"");
-  if(!/^\d{6}$/.test(cleanToken)){alert("Код должен состоять из 6 цифр.");return;}
+  if(!/^\d{6,10}$/.test(cleanToken)){alert("Введи цифровой код из письма без пробелов.");return;}
   const {error:verifyError}=await sb.auth.verifyOtp({email:cleanEmail,token:cleanToken,type:"email"});
   if(verifyError)alert("Ошибка кода: "+friendlyAuthError(verifyError));
 }
