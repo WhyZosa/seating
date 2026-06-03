@@ -232,14 +232,22 @@ async function loginFlow(){
   const email=prompt("Почта преподавателя (придёт письмо для входа):");
   if(!email)return;
   const cleanEmail=email.trim().toLowerCase();
+  const existingToken=prompt("Если код из письма уже есть, введи его сюда.\n\nЕсли кода ещё нет и нужно отправить новое письмо, оставь поле пустым.");
+  if(existingToken){
+    await verifyLoginCode(cleanEmail,existingToken);
+    return;
+  }
   const {error}=await sb.auth.signInWithOtp({email:cleanEmail,options:{emailRedirectTo:authRedirectUrl()}});
   if(error){alert("Ошибка: "+friendlyAuthError(error));return;}
   setStatus("Письмо отправлено на "+cleanEmail);
   const token=prompt("Письмо отправлено на "+cleanEmail+".\n\nЕсли в письме есть цифровой код, введи его здесь. Если хочешь войти по кнопке из письма, оставь поле пустым.");
   if(!token)return;
+  await verifyLoginCode(cleanEmail,token);
+}
+async function verifyLoginCode(email,token){
   const cleanToken=token.trim().replace(/\s+/g,"");
   if(!/^\d{6,10}$/.test(cleanToken)){alert("Введи цифровой код из письма без пробелов.");return;}
-  const {error:verifyError}=await sb.auth.verifyOtp({email:cleanEmail,token:cleanToken,type:"email"});
+  const {error:verifyError}=await sb.auth.verifyOtp({email,token:cleanToken,type:"email"});
   if(verifyError)alert("Ошибка кода: "+friendlyAuthError(verifyError));
 }
 
