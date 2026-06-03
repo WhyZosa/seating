@@ -1,5 +1,7 @@
 const SUPABASE_URL = "https://ludzkvlzkpvgcskgwshy.supabase.co";
 const SUPABASE_ANON = "sb_publishable_onHivOUsUImJY_v4tDyLzA_BWkEX9Tt";
+const APP_URL = "https://whyzosa.github.io/seating/";
+const FALLBACK_TEACHER_EMAILS = ["zasimukd@mail.ru"];
 
 function rowsRange(a,b,blocks){const o=[];for(let n=a;n<=b;n++)o.push({n,blocks:blocks.slice()});return o;}
 const ROOMS={
@@ -35,6 +37,36 @@ const totalSeats=room=>enumerate(room).length;
 const surname=f=>(f||"").trim().split(/\s+/)[0]||"";
 const escapeHtml=s=>(s+"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const isTaken=d=>d&&(d.fio||d.var||d.group||d.present);
+function authRedirectUrl(){
+  const productionUrl=new URL(APP_URL).href;
+  if(!["http:","https:"].includes(location.protocol))return productionUrl;
+  if(["localhost","127.0.0.1","::1"].includes(location.hostname))return productionUrl;
+  const url=new URL(location.href);
+  url.search="";
+  url.hash="";
+  if(!url.pathname.endsWith("/"))url.pathname=url.pathname.replace(/\/[^/]*$/,"/");
+  return url.href;
+}
+function authErrorFromUrl(){
+  const raw=(location.hash||"").replace(/^#/,"");
+  if(!raw.includes("error"))return "";
+  const p=new URLSearchParams(raw);
+  return (p.get("error_description")||p.get("error_code")||p.get("error")||"").replace(/\+/g," ");
+}
+function friendlyAuthError(error){
+  const msg=error&&(error.message||String(error));
+  if(error&&(error.status===429||/rate limit|too many/i.test(msg)))return "Слишком много запросов. Попробуй ещё раз через минуту; если Supabase всё равно просит ждать часы, уменьши лимиты/срок OTP в настройках Auth.";
+  return msg||"Неизвестная ошибка";
+}
+async function checkTeacher(session){
+  if(!session)return false;
+  try{
+    const {data,error}=await sb.rpc("is_current_teacher");
+    if(!error)return data===true;
+  }catch(e){}
+  const email=((session.user&&session.user.email)||"").toLowerCase();
+  return FALLBACK_TEACHER_EMAILS.includes(email);
+}
 
 async function loadAll(){
   if(!sb) return;
@@ -197,11 +229,18 @@ function renderRole(){
   }
 }
 async function loginFlow(){
-  const email=prompt("Почта преподавателя (придёт ссылка для входа):");
+  const email=prompt("Почта преподавателя (придёт письмо для входа):");
   if(!email)return;
-  const {error}=await sb.auth.signInWithOtp({email:email.trim(),options:{emailRedirectTo:location.origin+location.pathname}});
-  if(error)alert("Ошибка: "+error.message);
-  else alert("Ссылка для входа отправлена на "+email+". Открой письмо на этом же устройстве.");
+  const cleanEmail=email.trim().toLowerCase();
+  const {error}=await sb.auth.signInWithOtp({email:cleanEmail,options:{emailRedirectTo:authRedirectUrl()}});
+  if(error){alert("Ошибка: "+friendlyAuthError(error));return;}
+  setStatus("Письмо отправлено на "+cleanEmail);
+  const token=prompt("Письмо отправлено на "+cleanEmail+".\n\nЕсли в письме есть 6-значный код, введи его здесь. Если хочешь войти по кнопке из письма, оставь поле пустым.");
+  if(!token)return;
+  const cleanToken=token.trim().replace(/\s+/g,"");
+  if(!/^\d{6}$/.test(cleanToken)){alert("Код должен состоять из 6 цифр.");return;}
+  const {error:verifyError}=await sb.auth.verifyOtp({email:cleanEmail,token:cleanToken,type:"email"});
+  if(verifyError)alert("Ошибка кода: "+friendlyAuthError(verifyError));
 }
 
 document.getElementById("overlay").onclick=e=>{if(e.target.id==="overlay")closeModal();};
@@ -226,12 +265,14 @@ async function init(){
     document.getElementById("login").onclick=loginFlow;
     renderTabs();renderRoom();return;
   }
-  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON,{auth:{flowType:"implicit",persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  const authError=authErrorFromUrl();
   const {data:{session}}=await sb.auth.getSession();
-  isAdmin=!!session;
-  sb.auth.onAuthStateChange((_e,s)=>{const was=isAdmin;isAdmin=!!s;if(was!==isAdmin){renderRole();refreshAndRender();}});
+  isAdmin=await checkTeacher(session);
+  sb.auth.onAuthStateChange(async(_e,s)=>{const was=isAdmin;isAdmin=await checkTeacher(s);if(was!==isAdmin){renderRole();refreshAndRender();}});
   renderRole();
   await refreshAndRender();
+  if(authError)setStatus("Ошибка входа: "+authError);
   setInterval(refreshAndRender,5000);
 }
 init();
