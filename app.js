@@ -67,6 +67,13 @@ async function checkTeacher(session){
   const email=((session.user&&session.user.email)||"").toLowerCase();
   return FALLBACK_TEACHER_EMAILS.includes(email);
 }
+async function isTeacherEmail(email){
+  try{
+    const {data,error}=await sb.rpc("is_teacher_email",{check_email:email});
+    if(!error)return data===true;
+  }catch(e){}
+  return FALLBACK_TEACHER_EMAILS.includes(email);
+}
 
 async function loadAll(){
   if(!sb) return;
@@ -232,6 +239,10 @@ async function loginFlow(){
   const email=prompt("Почта преподавателя (придёт письмо для входа):");
   if(!email)return;
   const cleanEmail=email.trim().toLowerCase();
+  if(!await isTeacherEmail(cleanEmail)){
+    alert("Этой почты нет в списке преподавателей. Письмо не отправлено.");
+    return;
+  }
   const existingToken=prompt("Если код из письма уже есть, введи его сюда.\n\nЕсли кода ещё нет и нужно отправить новое письмо, оставь поле пустым.");
   if(existingToken){
     await verifyLoginCode(cleanEmail,existingToken);
